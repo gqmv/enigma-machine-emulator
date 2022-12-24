@@ -2,11 +2,31 @@ from typing import List
 
 
 class Rotor:
-    def __init__(self, wiring: List[int], turnover: int) -> None:
+    """
+    A Rotor object represents a rotor in an Enigma machine.
+    This specific implementation follow specifications available at https://www.ciphermachinesandcryptology.com/en/enigmatech.htm
+    """
+
+    def __init__(
+        self,
+        wiring: List[int],
+        turnover: int = 0,
+        ring_setting: int = 0,
+        position: int = 0,
+    ) -> None:
+        """Constructor - creates a new Rotor object.
+
+        Args:
+            wiring (List[int]): the wiring of the rotor, such that wiring[0] = 1 means that the input 0 is routed to the output 1.
+            turnover (int, optional): the number that is displayed when the rotor has reached it's turnover point. Defaults to 0.
+            ring_setting (int, optional): an offset that rotates the wiring clockwise. Defaults to 0.
+            position (int, optional): the current number displayed at the window. Defaults to 0.
+        """
+
         self._wiring = wiring
         self.turnover = turnover
-        self.ring_setting = 0
-        self.position = 0
+        self.ring_setting = ring_setting
+        self.position = position
 
     @property
     def wiring(self) -> List[int]:
