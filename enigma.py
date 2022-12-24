@@ -1,20 +1,53 @@
-from typing import List
+import pydantic
 
 
-class Rotor:
-    def __init__(self, wiring: List[int], turnover: int) -> None:
-        self._wiring = wiring
-        self.turnover = turnover
-        self.ring_setting = 0
-        self.position = 0
+class RotorWiring(pydantic.BaseModel):
+    """
+    A RotorWiring object represents the wiring of a rotor in an Enigma machine.
+    This specific implementation follow specifications available at https://www.ciphermachinesandcryptology.com/en/enigmatech.htm
+    """
 
-    @property
-    def wiring(self) -> List[int]:
+    wiring: list[int]
+
+    @pydantic.validator("wiring")
+    def check_full_alphabet(cls, v):
+        """
+        Validate that the wiring diagram routes all 26 letters of the alphabet.
+        """
+        unique_values = set(v)
+        if len(unique_values) != 26:
+            raise ValueError("wiring diagram must route all 26 letters of the alphabet")
+        return v
+
+    @pydantic.validate_arguments
+    def get_routing_diagram(self, offset: int) -> list[int]:
         """
         Generates the wiring for the rotor, accounting for the ring setting and position.
         """
-        return [(i + self.position - self.ring_setting) % 26 for i in self._wiring]
+        return [(i + offset) % 26 for i in self.wiring]
 
+
+class Rotor(pydantic.BaseModel):
+    """
+    A Rotor object represents a rotor in an Enigma machine.
+    This specific implementation follow specifications available at https://www.ciphermachinesandcryptology.com/en/enigmatech.htm
+    """
+
+    wiring: RotorWiring
+    turnover: int = 0
+    ring_setting: int = 0
+    position: int = 0
+
+    @pydantic.validator("turnover", "ring_setting", "position")
+    def validate_min_max(cls, v):
+        """
+        Checks whether the argument is within the range 0-25.
+        """
+        if v < 0 or v > 25:
+            raise ValueError(f"{v} is out of range (0-25)")
+        return v
+
+    @pydantic.validate_arguments
     def step(self) -> bool:
         """
         Step the rotor by one position, returning True if the rotor has reached the turnover position.
@@ -23,36 +56,13 @@ class Rotor:
         self.position = (self.position + 1) % 26
         return turnover_flag
 
+    @pydantic.validate_arguments
     def route(self, input: int, reverse: bool = False) -> int:
         """
         Route an input through the rotor, returning the output.
         """
+        routing_diagram = self.wiring.get_routing_diagram(self.ring_setting - self.position)
         if reverse:
-            return self.wiring.index(input)
+            return routing_diagram.index(input)
         else:
-            return self.wiring[input]
-
-
-class Enigma:
-    def __init__(self) -> None:
-        self._rotors = []
-        self.reflector = None
-        self.plugboard = None
-
-    @property
-    def rotors(self) -> List[Rotor]:
-        return self._rotors
-
-    @rotors.setter
-    def rotors(self, rotors: List[Rotor]) -> None:
-        if type(rotors) is not list:
-            raise TypeError("rotors must be a list")
-
-        if len(rotors) != 3:
-            raise ValueError("rotors must have exactly 3 elements")
-
-        for rotor in rotors:
-            if type(rotor) is not Rotor:
-                raise TypeError("rotors must be a list of Rotor objects")
-
-        self._rotors = rotors.copy()
+            return routing_diagram[input]
