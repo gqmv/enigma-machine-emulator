@@ -13,7 +13,7 @@ class Rotor:
         """
         Generates the wiring for the rotor, accounting for the ring setting and position.
         """
-        # TODO: Implement a way to determine the correct wiring diagram for the rotor
+        return [(i + self.position - self.ring_setting) % 26 for i in self._wiring]
 
     def step(self) -> bool:
         """
